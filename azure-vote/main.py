@@ -47,9 +47,7 @@ view_manager.register_exporter(exporter)
 
 # Tracing
 # TODO: Setup tracer
-tracer = Tracer(
- exporter=AzureExporter(
-     connection_string='InstrumentationKey=a1160a80-fef2-4a48-b6c7-112d2b22d33c'),
+tracer = Tracer(exporter=AzureExporter(connection_string='InstrumentationKey=a1160a80-fef2-4a48-b6c7-112d2b22d33c'),
  sampler=ProbabilitySampler(1.0),
 )
 app = Flask(__name__)
@@ -81,7 +79,20 @@ else:
     title = app.config['TITLE']
 
 # Redis Connection
-r = redis.Redis()
+#r = redis.Redis()
+#changed to allow deployment to aks
+ # Redis configurations
+redis_server = os.environ['REDIS']
+
+   # Redis Connection to another container
+try:
+    if "REDIS_PWD" in os.environ:
+        r = redis.StrictRedis(host=redis_server, port=6379, password=os.environ['REDIS_PWD'])
+    else:
+        r = redis.Redis(redis_server)
+    r.ping()
+except redis.ConnectionError:
+    exit('Failed to connect to Redis, terminating.')
 
 # Change title to host name to demo NLB
 if app.config['SHOWHOST'] == "true":
